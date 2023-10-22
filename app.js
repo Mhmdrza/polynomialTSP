@@ -116,10 +116,15 @@ let onlyOnce = false;
           const [destX, destY] = dest;
           return Math.sqrt(((destX - srcX)**2) + ((destY - srcY)**2));
         }
-        function drawCircle (point, radius) {
+        function drawCircle (point1, point2) {
+          const radius = distanceCalculator(point1, point2)/2;
+          const center = [(point1[0] + point2[0]) / 2, (point1[1] + point2[1]) / 2];
           ctx.beginPath();
-          ctx.strokeStyle = 'blue'
-          ctx.arc(point[0]/scaleFactor, point[1]/scaleFactor, radius/scaleFactor, 0, 2 * Math.PI);
+          ctx.strokeStyle = 'yellow';
+          ctx.arc(center[0]/scaleFactor, center[1]/scaleFactor, radius/scaleFactor, 0, 2 * Math.PI);
+          setPixelAt(point1[0], point1[1], {r:10, g:10, b: 255})
+          setPixelAt(point2[0], point2[1], {r:10, g:255, b: 10})
+          setPixelAt(center[0], center[1], {r:255, g:10, b: 10})
           ctx.stroke();
         }
         function drawLine (start, end) {
@@ -129,7 +134,7 @@ let onlyOnce = false;
           ctx.lineTo(end[0]/scaleFactor, end[1]/scaleFactor);
           ctx.stroke();
         }
-        (function drawSolution () {
+        function drawSolution () {
           let solutionPaths = [], counter = 0, endCount = solutionPathOrder.length;
           solutionPathOrder.reduce( (prevCityIndex, cityIndex) => {
             solutionPaths.push([dataSet[prevCityIndex], dataSet[cityIndex]]);
@@ -150,7 +155,8 @@ let onlyOnce = false;
             ctx.beginPath()
             itrate.call(this)
           };
-        })()
+        }
+        drawSolution()
         function reset() {
           ctx.beginPath()
           ctx.fillStyle = `rgb(255,255,255)`;
@@ -160,19 +166,67 @@ let onlyOnce = false;
           );
           const middlePointX = dataSet.reduce((acc, el) => -(-el[0]-acc), 0)/dataSet.length;
           const middlePointY = dataSet.reduce((acc, el) => -(-el[1]-acc), 0)/dataSet.length;
-          setPixelAt(middlePointX, middlePointY, {r:255, g: 10, b: 10});
+          // setPixelAt(middlePointX, middlePointY, {r:255, g: 10, b: 10});
           ctx.stroke();
         }
-reset();
-        //midlle point
-        const middlePointX = dataSet.reduce((acc, el) => -(-el[0]-acc), 0)/dataSet.length;
-        const middlePointY = dataSet.reduce((acc, el) => -(-el[1]-acc), 0)/dataSet.length;
-        setPixelAt(middlePointX, middlePointY, {r:255, g: 10, b: 10});
 
-        let eachNodeDistanceFromMiddle = dataSet.reduce((acc, point) => {
-          // ctx.moveTo(point[0]/scaleFactor, point[1]/scaleFactor);
-          // ctx.lineTo(middlePointX/scaleFactor, middlePointY/scaleFactor);
-          return acc + distanceCalculator([middlePointX, middlePointY], point);
-        }, 0);
-        circl.onclick = () => drawCircle([middlePointX, middlePointY], eachNodeDistanceFromMiddle/dataSet.length);
+        let prevPoint;
+        dataSet.reduce((acc, [x,y], index) => {
+          prevPoint && drawLine([x,y], prevPoint);
+          prevPoint = [x,y];
+          if (!acc) return [x,y];
+          drawCircle([x,y], acc);
+          return [x,y];
+        }, null);
+
+        circl.onclick = () => drawCircle(dataSet[0], dataSet[1]);
+
+        function findIntersections(point1, point2, circlePoint1, circlePoint2) {
+          // Calculate the center of the circle
+          const h = (circlePoint1.x + circlePoint2.x) / 2;
+          const k = (circlePoint1.y + circlePoint2.y) / 2;
+          
+          // Calculate the radius of the circle
+          const r = Math.sqrt(Math.pow(circlePoint2.x - circlePoint1.x, 2) + Math.pow(circlePoint2.y - circlePoint1.y, 2)) / 2;
+      
+          // Calculate the coefficients for the line
+          const m = (point2.y - point1.y) / (point2.x - point1.x);
+          const c = point1.y - m * point1.x;
+          
+          // Calculate quadratic coefficients from the equations
+          const a = 1 + m * m;
+          const b = 2 * m * c - 2 * h - 2 * k * m;
+          const d = h * h + k * k + c * c - r * r - 2 * c * k;
+      
+          // Calculate discriminant
+          const discriminant = b * b - 4 * a * d;
+      
+          if (discriminant < 0) {
+              // No intersections
+              return [];
+          } else if (discriminant === 0) {
+              // One intersection
+              const x1 = -b / (2 * a);
+              const y1 = m * x1 + c;
+              return [{ x: x1, y: y1 }];
+          } else {
+              // Two intersections
+              const x1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+              const y1 = m * x1 + c;
+      
+              const x2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+              const y2 = m * x2 + c;
+      
+              return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+          }
+      }
+      
+      // Define the endpoints of the line and the points defining the circle
+      const linePoint1 = { x: 1, y: 1 };
+      const linePoint2 = { x: 5, y: 5 };
+      const circlePoint1 = { x: 3, y: 3 };
+      const circlePoint2 = { x: 6, y: 6 };
+      
+      const intersections = findIntersections(linePoint1, linePoint2, circlePoint1, circlePoint2);
+      console.log(intersections);
 

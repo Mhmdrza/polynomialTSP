@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Point and Shape Drawing App</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="8000" height="5000" style="transform: scale(.15);"></canvas>
+    <button id="pointButton">Add Point</button>
+    <button id="lineButton">Draw Line</button>
+    <button id="circleButton">Draw Circle</button>
+    <button id="clearButton">Clear</button>
+    <div>
+        <label for="pointSelect">Select Point for Circle:</label>
+        <select id="pointSelect"></select>
+    </div>
+    <div>
+        <p>Intersections: <span id="intersectionCount">0</span></p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const context = canvas.getContext("2d");
+        const pointButton = document.getElementById("pointButton");
+        const lineButton = document.getElementById("lineButton");
+        const circleButton = document.getElementById("circleButton");
+        const clearButton = document.getElementById("clearButton");
+        const pointSelect = document.getElementById("pointSelect");
+        const intersectionCount = document.getElementById("intersectionCount");
+
+        const points = [
+        //   {x: 6734, y: 1453},
+        //   {x: 2233, y: 10},
+          {x: 5530, y: 1424},
+        //   {x: 401, y: 841},
+          {x: 3082, y: 1644},
+          {x: 7608, y: 4458},
+        //   {x: 7573, y: 3716},
+        //   {x: 7265, y: 1268},
+        //   {x: 6898, y: 1885},
+          {x: 1112, y: 2049},
+        //   {x: 5468, y: 2606},
+        //   {x: 5989, y: 2873},
+        //   {x: 4706, y: 2674},
+          {x: 4612, y: 2035},
+        //   {x: 6347, y: 2683},
+        //   {x: 6107, y: 669},
+        //   {x: 7611, y: 5184},
+        //   {x: 7462, y: 3590},
+        //   {x: 7732, y: 4723},
+        //   {x: 5900, y: 3561},
+        //   {x: 4483, y: 3369},
+        //   {x: 6101, y: 1110},
+        //   {x: 5199, y: 2182},
+        //   {x: 1633, y: 2809},
+        //   {x: 4307, y: 2322},
+        //   {x: 675, y: 1006},
+        //   {x: 7555, y: 4819},
+        //   {x: 7541, y: 3981},
+        //   {x: 3177, y: 756},
+        //   {x: 7352, y: 4506},
+        //   {x: 7545, y: 2801},
+        //   {x: 3245, y: 3305},
+        //   {x: 6426, y: 3173},
+        //   {x: 4608, y: 1198},
+        //   {x: 23, y: 2216},
+        //   {x: 7248, y: 3779},
+        //   {x: 7762, y: 4595},
+        //   {x: 7392, y: 2244},
+        //   {x: 3484, y: 2829},
+        //   {x: 6271, y: 2135},
+        //   {x: 4985, y: 140},
+        //   {x: 1916, y: 1569},
+        //   {x: 7280, y: 4899},
+        //   {x: 7509, y: 3239},
+        //   {x: 10, y: 2676},
+        //   {x: 6807, y: 2993},
+        //   {x: 5185, y: 3258},
+        //   {x: 3023, y: 1942},
+        ];
+        const lines = [];
+        const circles = [];
+
+        let selectedPoint = null;
+
+        function drawPoint(x, y) {
+            context.beginPath();
+            context.arc(x, y, 3, 0, Math.PI * 2);
+            context.fillStyle = "red";
+            context.fill();
+        }
+
+        function drawLine(startX, startY, endX, endY) {
+            context.beginPath();
+            context.moveTo(startX, startY);
+            context.lineTo(endX, endY);
+            context.strokeStyle = "blue";
+            context.stroke();
+        }
+
+        function drawCircle(x, y, radius) {
+            context.beginPath();
+            context.arc(x, y, radius, 0, Math.PI * 2);
+            context.strokeStyle = "green";
+            context.stroke();
+        }
+
+        function clearCanvas() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function updatePointSelect() {
+            pointSelect.innerHTML = "";
+            for (let i = 0; i < points.length; i++) {
+                const option = document.createElement("option");
+                option.value = i;
+                option.text = `Point ${i}`;
+                pointSelect.appendChild(option);
+            }
+        }
+
+        function updateIntersections() {
+            let count = 0;
+            for (const line of lines) {
+                for (const circle of circles) {
+                    const dx = line[1].x - line[0].x;
+                    const dy = line[1].y - line[0].y;
+                    const a = dx * dx + dy * dy;
+                    const b = 2 * (dx * (line[0].x - circle.x) + dy * (line[0].y - circle.y));
+                    const c = (line[0].x - circle.x) ** 2 + (line[0].y - circle.y) ** 2 - circle.radius ** 2;
+                    const discriminant = b ** 2 - 4 * a * c;
+                    if (discriminant >= 0) {
+                        const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                        const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                        if (t1 >= 0 && t1 <= 1) {
+                            count++;
+                        }
+                        if (t2 >= 0 && t2 <= 1) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            console.log({
+                count
+            })
+            // intersectionCount.textContent = count;
+        }
+
+        function calculateDistance(point1, point2) {
+            const dx = point2.x - point1.x;
+            const dy = point2.y - point1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function findCircleLineIntersections(lineStart, lineEnd, circles) {
+            const intersections = [];
+            for (const circle of circles) {
+                const dx = lineEnd.x - lineStart.x;
+                const dy = lineEnd.y - lineStart.y;
+                const a = dx * dx + dy * dy;
+                const b = 2 * (dx * (lineStart.x - circle.x) + dy * (lineStart.y - circle.y));
+                const c = (lineStart.x - circle.x) ** 2 + (lineStart.y - circle.y) ** 2 - circle.radius ** 2;
+                const discriminant = b ** 2 - 4 * a * c;
+
+                if (discriminant >= 0) {
+                    const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                    const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+
+                    const intersection1 = {
+                        x: lineStart.x + t1 * dx,
+                        y: lineStart.y + t1 * dy
+                    };
+
+                    const intersection2 = {
+                        x: lineStart.x + t2 * dx,
+                        y: lineStart.y + t2 * dy
+                    };
+
+                    intersections.push(intersection1, intersection2);
+                }
+            }
+
+            return intersections;
+        }
+
+        function countCircleIntersectionsOnLine(lineStart, lineEnd) {
+            let intersectionCount = 0;
+            circles.forEach((circle) => {
+                const dx = lineEnd.x - lineStart.x;
+                const dy = lineEnd.y - lineStart.y;
+                const a = dx * dx + dy * dy;
+                const b = 2 * (dx * (lineStart.x - circle.x) + dy * (lineStart.y - circle.y));
+                const c = (lineStart.x - circle.x) ** 2 + (lineStart.y - circle.y) ** 2 - circle.radius ** 2;
+                const discriminant = b ** 2 - 4 * a * c;
+
+                if (discriminant >= 0) {
+                    const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                    const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+
+                    if (t1 >= 0 && t1 <= 1) {
+                        intersectionCount++;
+                    }
+
+                    if (t2 >= 0 && t2 <= 1) {
+                        intersectionCount++;
+                    }
+                }
+            });
+
+            return intersectionCount;
+        };
+
+
+        // points.forEach(({x, y}) => {
+        //     drawPoint(x, y);
+        // });
+
+        points.forEach((point) => {
+            points.forEach((secondPoint) => {
+                lines.push([point, secondPoint]);
+                // drawLine(point.x, point.y, secondPoint.x, secondPoint.y);
+                const radius = calculateDistance(point, secondPoint) / 2;
+                const centerPoint = {x: (point.x + secondPoint.x) / 2, y: (point.y + secondPoint.y) / 2};
+                // drawCircle(point.x, point.y, radius);
+                circles.push({...centerPoint, radius});
+            })
+        });
+
+        lines.forEach(line => {
+            // drawLine(line[0].x, line[0].y, line[1].x, line[1].y)
+        })
+
+        circles.forEach((circle) => {
+            drawCircle(circle.x, circle.y, circle.radius)
+        })
+
+        // updateIntersections();
+
+        let pointsTotalInterscrionCount = {};
+        let LinesTotalInterscrionCount = {};
+        lines.forEach(line => {
+            const intersctionOfCircles = countCircleIntersectionsOnLine(line[0], line[1]);
+            // pointsTotalInterscrionCount[]
+            const point1Name = line[0].x + '-' + line[0].y;
+            const point2Name = line[1].x + '-' + line[1].y;
+            pointsTotalInterscrionCount[point1Name] = (pointsTotalInterscrionCount[point1Name] || 0) + intersctionOfCircles;
+            pointsTotalInterscrionCount[point2Name] = (pointsTotalInterscrionCount[point2Name] || 0) + intersctionOfCircles;
+
+            const lineName = line[0].x + '-' + line[0].y + ':' + line[1].x + '-' + line[1].y ;
+            LinesTotalInterscrionCount[lineName] = (LinesTotalInterscrionCount[lineName] || 0) + intersctionOfCircles;
+            // line.intersections = intersctionOfCircles;
+            // circles.forEach((circle) => {
+            // })
+        });
+
+        Object.keys(pointsTotalInterscrionCount).forEach((pointDashed) => {
+            const splitted = pointDashed.split('-');
+            drawPoint(splitted[0], splitted[1]);
+        });
+
+        // console.log(pointsTotalInterscrionCount);
+
+        // Object.keys(pointsTotalInterscrionCount).forEach((pointDashed) => {
+        //     const splitted = pointDashed.split('-');
+        //     drawPoint(splitted[0], splitted[1]);
+        // });
+
+        const sorted = Object.values(pointsTotalInterscrionCount).sort();
+        console.log(sorted)
+        const swapped = swap(pointsTotalInterscrionCount);
+
+
+        let firstPoint;
+        const lastePoint = sorted.reduce((prevPointDashedString, intersctionCount) => {
+            const currentPointDashedString = swapped[intersctionCount];
+            if (!prevPointDashedString) {
+                firstPoint = currentPointDashedString;
+                return currentPointDashedString;
+            }
+            const currentPoint = currentPointDashedString.split('-');
+            const prevPoint = prevPointDashedString.split('-');
+            drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1]);
+            return currentPointDashedString;
+        }, null);
+
+        const currentPoint = firstPoint.split('-');
+        const prevPoint = lastePoint.split('-');
+        drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1]);
+
+
+        // const sorted = Object.values(LinesTotalInterscrionCount).sort();
+        // const swapped = swap(LinesTotalInterscrionCount);
+
+        // sorted.forEach((intersctionCount) => {
+        //     const theLine = swapped[intersctionCount].split(':');
+        //     const lineStart = theLine[0].split('-');
+        //     const lineEnd = theLine[1].split('-');
+        //     drawLine(lineStart[0], lineStart[1], lineEnd[0], lineEnd[1])
+        // });
+
+        // Example usage:
+        // const lineStart = { x: 10, y: 100 };
+        // const lineEnd = { x: 300, y: 300 };
+        // const circles_test = [
+        //     { x: 150, y: 150, radius: 50 },
+        //     { x: 200, y: 200, radius: 30 },
+        //     { x: 250, y: 250, radius: 40 }
+        // ];
+        // drawPoint(lineStart.x, lineStart.y);
+        // drawPoint(lineEnd.x, lineEnd.y);
+        // drawLine(lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
+        // circles_test.forEach(({ x,y, radius }) => {
+        //     drawCircle(x,y, radius);
+        // })
+        // const intersections = findCircleLineIntersections(lineStart, lineEnd, circles_test);
+        // intersections.forEach(({x, y}) => {
+        //     drawPoint(x,y)
+        // })
+        // console.log(intersections);
+
+        // pointButton.addEventListener("click", () => {
+        //     const x = Math.random() * canvas.width;
+        //     const y = Math.random() * canvas.height;
+        //     drawPoint(x, y);
+        //     points.push({ x, y });
+        //     updatePointSelect();
+        // });
+
+        // lineButton.addEventListener("click", () => {
+        //     if (points.length < 2) {
+        //         alert("You need at least 2 points to draw a line.");
+        //         return;
+        //     }
+        //     const startIdx = pointSelect.options[pointSelect.selectedIndex].value;
+        //     const endIdx = pointSelect.options[pointSelect.selectedIndex].value;
+        //     drawLine(points[startIdx].x, points[startIdx].y, points[endIdx].x, points[endIdx].y);
+        //     lines.push([points[startIdx], points[endIdx]]);
+        // });
+
+        // circleButton.addEventListener("click", () => {
+        //     if (points.length < 1) {
+        //         alert("You need at least 1 point to draw a circle.");
+        //         return;
+        //     }
+        //     const pointIdx = pointSelect.options[pointSelect.selectedIndex].value;
+        //     const radius = Math.random() * 50 + 10; // Random radius between 10 and 60
+        //     drawCircle(points[pointIdx].x, points[pointIdx].y, radius);
+        //     circles.push({ x: points[pointIdx].x, y: points[pointIdx].y, radius });
+        // });
+
+        // clearButton.addEventListener("click", () => {
+        //     clearCanvas();
+        //     points.length = 0;
+        //     lines.length = 0;
+        //     circles.length = 0;
+        //     pointSelect.innerHTML = "";
+        //     intersectionCount.textContent = "0";
+        // });
+
+        // pointSelect.addEventListener("change", () => {
+        //     selectedPoint = pointSelect.options[pointSelect.selectedIndex].value;
+        // });
+
+        // canvas.addEventListener("click", (e) => {
+        //     if (selectedPoint !== null) {
+        //         const x = e.clientX - canvas.getBoundingClientRect().left;
+        //         const y = e.clientY - canvas.getBoundingClientRect().top;
+        //         drawPoint(x, y);
+        //         points[selectedPoint].x = x;
+        //         points[selectedPoint].y = y;
+        //         updateIntersections();
+        //     }
+        // });
+        function swap(json){
+            var ret = {};
+            for(var key in json){
+                ret[json[key]] = key;
+            }
+            return ret;
+        }
+    </script>
+</body>
+</html>
