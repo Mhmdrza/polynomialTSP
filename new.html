@@ -94,11 +94,11 @@
             context.fill();
         }
 
-        function drawLine(startX, startY, endX, endY) {
+        function drawLine(startX, startY, endX, endY, color = 'blue') {
             context.beginPath();
             context.moveTo(startX, startY);
             context.lineTo(endX, endY);
-            context.strokeStyle = "blue";
+            context.strokeStyle = color;
             context.stroke();
         }
 
@@ -215,6 +215,14 @@
             return intersectionCount;
         };
 
+        function writeText(text, x, y, font = "32px Arial", color = "black") {
+            console.log({
+                text, x, y
+            })
+            context.font = font;
+            context.fillStyle = color;
+            context.fillText(text, x, y);
+        }
 
         // points.forEach(({x, y}) => {
         //     drawPoint(x, y);
@@ -231,9 +239,9 @@
             })
         });
 
-        lines.forEach(line => {
-            // drawLine(line[0].x, line[0].y, line[1].x, line[1].y)
-        })
+        // lines.forEach(line => {
+        //     drawLine(line[0].x, line[0].y, line[1].x, line[1].y);
+        // })
 
         circles.forEach((circle) => {
             drawCircle(circle.x, circle.y, circle.radius)
@@ -246,6 +254,8 @@
         lines.forEach(line => {
             const intersctionOfCircles = countCircleIntersectionsOnLine(line[0], line[1]);
             // pointsTotalInterscrionCount[]
+
+            line.intersctionCount = intersctionOfCircles;
             const point1Name = line[0].x + '-' + line[0].y;
             const point2Name = line[1].x + '-' + line[1].y;
             pointsTotalInterscrionCount[point1Name] = (pointsTotalInterscrionCount[point1Name] || 0) + intersctionOfCircles;
@@ -257,6 +267,12 @@
             // circles.forEach((circle) => {
             // })
         });
+
+        lines.forEach(line => {
+            drawLine(line[0].x, line[0].y, line[1].x, line[1].y);
+            const centerPoint = {x: (line[0].x + line[1].x) / 2, y: (line[0].y + line[1].y) / 2};
+            writeText(line.intersctionCount, centerPoint.x, centerPoint.y);
+        })
 
         Object.keys(pointsTotalInterscrionCount).forEach((pointDashed) => {
             const splitted = pointDashed.split('-');
@@ -282,15 +298,15 @@
                 firstPoint = currentPointDashedString;
                 return currentPointDashedString;
             }
-            const currentPoint = currentPointDashedString.split('-');
-            const prevPoint = prevPointDashedString.split('-');
-            drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1]);
+            const currentPoint = currentPointDashedString.split('-').map(str => 1*str);
+            const prevPoint = prevPointDashedString.split('-').map(str => 1*str);
+            drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1], 'red');
             return currentPointDashedString;
         }, null);
 
         const currentPoint = firstPoint.split('-');
         const prevPoint = lastePoint.split('-');
-        drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1]);
+        drawLine(currentPoint[0], currentPoint[1], prevPoint[0], prevPoint[1], 'red');
 
 
         // const sorted = Object.values(LinesTotalInterscrionCount).sort();
@@ -376,6 +392,18 @@
         //         updateIntersections();
         //     }
         // });
+        
+        
+        canvas.addEventListener("click", (event) => {
+            const x = event.clientX - canvas.getBoundingClientRect().left;
+            const y = event.clientY - canvas.getBoundingClientRect().top;
+            const label = prompt("Enter a label for this point:");
+            
+            if (label !== null) {
+                writeText(label, x * 6.666, y * 6.666, null, 'red');
+            }
+        });
+
         function swap(json){
             var ret = {};
             for(var key in json){
